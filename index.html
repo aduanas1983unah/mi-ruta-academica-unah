@@ -56,7 +56,38 @@ const search=document.getElementById('optSearchCatalog'),area=document.getElemen
 function filterCatalog(){const q=(search.value||'').trim().toLocaleLowerCase(),a=area.value;let total=0;document.querySelectorAll('[data-opt-area]').forEach(group=>{let visible=0;group.querySelectorAll('.optcatalogitem').forEach(item=>{const show=(!a||group.dataset.optArea===a)&&(!q||item.dataset.optSearch.includes(q));item.style.display=show?'':'none';if(show)visible++});group.style.display=visible?'':'none';total+=visible});document.getElementById('optNoResults').style.display=total?'none':'block'}
 search.addEventListener('input',filterCatalog);area.addEventListener('change',filterCatalog);
 })();
-</script><script>(function(){for(const id of ['gradPractice','grad140','gradEnglish']){const el=document.getElementById(id);if(!el)continue;try{el.checked=localStorage.getItem('ruta_unah_'+id)==='true'}catch(e){}el.addEventListener('change',()=>{try{localStorage.setItem('ruta_unah_'+id,String(el.checked))}catch(e){}})}})();</script><div id="expModal" hidden role="dialog" aria-modal="true" aria-labelledby="expTitle" class="exp-overlay"><div class="exp-dialog"><button type="button" id="expClose" class="exp-x" aria-label="Cerrar">×</button><h2 id="expTitle">Descargar ficha de expediente</h2><p class="subtitle">Completa tus datos para generar tu ficha de avance académico en PDF.</p><form id="expForm"><div class="formgrid"><label class="field">Nombre completo<input id="expName" required maxlength="120" autocomplete="name" placeholder="Nombres y apellidos"></label><label class="field">Número de cuenta<input id="expAccount" required maxlength="20" pattern="[0-9]{6,20}" inputmode="numeric" placeholder="Número de cuenta"></label><label class="field">Teléfono celular<input id="expPhone" required maxlength="20" type="tel" pattern="[0-9+() -]{8,20}" placeholder="Número de celular"></label><label class="field">Correo electrónico<input id="expEmail" required type="email" maxlength="120" autocomplete="email" placeholder="correo@ejemplo.com"></label></div><p class="notice">Los datos se usarán únicamente para generar el PDF en tu dispositivo; no se envían ni se guardan en un servidor.</p><div class="filters" style="justify-content:flex-end"><button type="button" class="btn ghost" id="expCancel">Cancelar</button><button type="submit" class="btn" id="expGenerate">Generar PDF</button></div><p id="expError" role="alert" style="color:#a52c2c" hidden></p></form></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script><script>
+</script><script>(function(){for(const id of ['gradPractice','grad140','gradEnglish']){const el=document.getElementById(id);if(!el)continue;try{el.checked=localStorage.getItem('ruta_unah_'+id)==='true'}catch(e){}el.addEventListener('change',()=>{try{localStorage.setItem('ruta_unah_'+id,String(el.checked))}catch(e){}})}})();</script><div id="expModal" hidden role="dialog" aria-modal="true" aria-labelledby="expTitle" class="exp-overlay"><div class="exp-dialog"><button type="button" id="expClose" class="exp-x" aria-label="Cerrar">×</button><h2 id="expTitle">Descargar ficha de expediente</h2><p class="subtitle">Completa tus datos para generar tu ficha de avance académico en PDF.</p><form id="expForm"><div class="formgrid"><label class="field">Nombre completo<input id="expName" required maxlength="120" autocomplete="name" placeholder="Nombres y apellidos"></label><label class="field">Número de cuenta<input id="expAccount" required maxlength="20" pattern="[0-9]{6,20}" inputmode="numeric" placeholder="Número de cuenta"></label><label class="field">Teléfono celular<input id="expPhone" required maxlength="20" type="tel" pattern="[0-9+() -]{8,20}" placeholder="Número de celular"></label><label class="field">Correo electrónico<input id="expEmail" required type="email" maxlength="120" autocomplete="email" placeholder="correo@ejemplo.com"></label></div><p class="notice">Los datos se usarán únicamente para generar el PDF en tu dispositivo; no se envían ni se guardan en un servidor.</p><div class="filters" style="justify-content:flex-end"><button type="button" class="btn ghost" id="expCancel">Cancelar</button><button type="submit" class="btn" id="expGenerate">Generar PDF</button></div><p id="expError" role="alert" style="color:#a52c2c" hidden></p></form></div></div><script>
+/* Generador PDF autónomo: no requiere bibliotecas externas ni conexión. */
+(function(){
+class PDFLocal {
+ constructor(){this.pages=[[]];this.idx=0;this.font='normal';this.size=10;this.fill=[0,0,0];this.ink=[0,0,0];this.stroke=[0,0,0]}
+ setFont(_,style){this.font=style==='bold'?'bold':'normal';return this}
+ setFontSize(n){this.size=n;return this}
+ setTextColor(...c){this.ink=c;return this}
+ setFillColor(...c){this.fill=c;return this}
+ setDrawColor(...c){this.stroke=c;return this}
+ _rgb(c){return c.map(v=>(v/255).toFixed(3)).join(' ')}
+ _put(v){this.pages[this.idx].push(v)}
+ _pt(mm){return (mm*72/25.4).toFixed(2)}
+ _y(mm){return this._pt(297-mm)}
+ _safe(s){return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7E]/g,'?').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')}
+ text(t,x,y){const arr=Array.isArray(t)?t:[t];arr.forEach((v,i)=>{const yy=y+i*this.size*.44;this._put(`BT /${this.font==='bold'?'F2':'F1'} ${this.size} Tf ${this._rgb(this.ink)} rg 1 0 0 1 ${this._pt(x)} ${this._y(yy)} Tm (${this._safe(v)}) Tj ET`) });return this}
+ splitTextToSize(t,width){const max=Math.max(8,width*72/25.4/(this.size*.51));const out=[];for(const para of String(t).split('\n')){let row='';for(const word of para.split(/\s+/)){if(!word)continue;if(row&&row.length+word.length+1>max){out.push(row);row=word}else row+=(row?' ':'')+word}out.push(row)}return out}
+ rect(x,y,w,h,mode){this._put(`${this._rgb(mode==='F'?this.fill:this.stroke)} ${mode==='F'?'rg':'RG'} ${this._pt(x)} ${this._y(y+h)} ${this._pt(w)} ${this._pt(h)} re ${mode==='F'?'f':'S'}`);return this}
+ roundedRect(x,y,w,h,_rx,_ry,mode){return this.rect(x,y,w,h,mode)}
+ line(x,y,x2,y2){this._put(`${this._rgb(this.stroke)} RG ${this._pt(x)} ${this._y(y)} m ${this._pt(x2)} ${this._y(y2)} l S`);return this}
+ addPage(){this.pages.push([]);this.idx=this.pages.length-1;return this}
+ setPage(n){this.idx=n-1;return this}
+ getNumberOfPages(){return this.pages.length}
+ save(filename){const objects=[];const add=v=>{objects.push(v);return objects.length};const catalog=add('');const pagesRef=add('');const font1=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');const font2=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');const kids=[];
+ for(const cmds of this.pages){const stream=cmds.join('\n')+'\n';const content=add(`<< /Length ${stream.length} >>\nstream\n${stream}endstream`);const page=add(`<< /Type /Page /Parent ${pagesRef} 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 ${font1} 0 R /F2 ${font2} 0 R >> >> /Contents ${content} 0 R >>`);kids.push(`${page} 0 R`)}
+ objects[catalog-1]=`<< /Type /Catalog /Pages ${pagesRef} 0 R >>`;objects[pagesRef-1]=`<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${kids.length} >>`;
+ let output='%PDF-1.4\n';const offsets=[0];for(let i=0;i<objects.length;i++){offsets.push(output.length);output+=`${i+1} 0 obj\n${objects[i]}\nendobj\n`}const start=output.length;output+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;for(let i=1;i<offsets.length;i++)output+=`${String(offsets[i]).padStart(10,'0')} 00000 n \n`;output+=`trailer\n<< /Size ${objects.length+1} /Root ${catalog} 0 R >>\nstartxref\n${start}\n%%EOF`;
+ const blob=new Blob([output],{type:'application/pdf'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);return this}
+}
+window.jspdf={jsPDF:PDFLocal};
+})();
+</script><script>
 (function(){
 const modal=document.getElementById('expModal'),form=document.getElementById('expForm');
 function close(){modal.hidden=true;document.getElementById('expError').hidden=true}
@@ -69,7 +100,7 @@ const done=fulfilled(),approvedList=subjects.filter(s=>done.has(s.code)),availab
 const total=subjects.reduce((n,s)=>n+s.cr,0),earned=approvedList.reduce((n,s)=>n+s.cr,0),pct=total?Math.round(earned/total*100):0;
 const data={name:document.getElementById('expName').value.trim(),account:document.getElementById('expAccount').value.trim(),phone:document.getElementById('expPhone').value.trim(),email:document.getElementById('expEmail').value.trim()};
 const date=new Date().toLocaleDateString('es-HN',{year:'numeric',month:'long',day:'numeric'});
-if(!window.jspdf?.jsPDF)throw Error('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo de nuevo.');
+if(!window.jspdf?.jsPDF)throw Error('No se pudo iniciar el generador de PDF.');
 const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4'}),W=210,M=17,usable=W-2*M;let y=17,page=1;
 const clean=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 function pageCheck(h){if(y+h>276){pdf.addPage();page++;y=18}}
